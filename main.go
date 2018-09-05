@@ -50,7 +50,6 @@ type AlmInstance struct {
 
 type Defect struct {
 	Id      int    `json:"id"`
-	Segment string `json:"user-03"`
 	Subject string `json:"subject"`
 	Status  string `json:"status"`
 	Type    string `json:"type"`
