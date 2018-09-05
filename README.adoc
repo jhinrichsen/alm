@@ -1,0 +1,43 @@
+image:https://travis-ci.com/jhinrichsen/alm.svg?branch=master["Build Status", link="https://travis-ci.com/
+jhinrichsen/alm"]
+image:https://img.shields.io/github/release/jhinrichsen/alm.svg["Release", link="https://github.com/jhinri
+chsen/alm/releases/latest"]
+image:https://godoc.org/github.com/jhinrichsen/alm?status.svg["godoc", link="https://godoc.org/github.com/
+jhinrichsen/alm"]
+image:https://goreportcard.com/badge/github.com/jhinrichsen/alm["Go report card", link="https://goreportca
+rd.com/report/github.com/jhinrichsen/alm"]
+image:https://golangci.com/badges/github.com/jhinrichsen/alm.svg["Golang CI", link="https://golangci.com/r
+/github.com/jhinrichsen/alm"]
+
+= alm
+REST client for HP ALM
+
+Supports updating defects for now.
+
+= Installation
+
+----
+go get github.com/jhinrichsen/alm
+----
+
+= Configuration
+
+alm supports the following parameters:
+
+- protocol (`http` or `https`)
+- server (`alm.mycompany.com`)
+- port
+- context (`/qcbin`)
+- username
+- password
+- domain (ALM domain)
+- project (ALM project)
+
+
+These values can be configurated in a file `${HOME}/.alm` in yaml format, via environment variables (uppercase, prepended by `ALM_`, or via commandline. This order is also the precedence.
+
+= Running
+
+----
+alm 
+----
