@@ -14,6 +14,9 @@ REST client for HP ALM
 
 Supports updating defects for now.
 
+Creating releases will follow, but as of this writing the ALM has two REST APIs, an official one and an unsupported one.
+Only the unsupported version supports releases, so we need to wait until this feature is officially supported.
+
 = Installation
 
 ----
