@@ -1,0 +1,7 @@
+tmt:
+    domain: TMT_DOMAIN
+    project: TMT_PROJECT
+    defects:
+        - 4711
+        - 4712
+        - 4713
