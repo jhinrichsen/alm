@@ -130,7 +130,6 @@ func (a *AlmInstance) GetDefect(defect int) (*Defect, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("defect: %+v\n", string(buf))
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		log.Printf("warning: http status code %d\n", res.StatusCode)
 	}
@@ -156,7 +155,7 @@ func (a *AlmInstance) PutDefect(d Defect) (*Defect, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("request: %+v\n", req)
+	log.Printf("GET %s\n", req.URL)
 	res, err := a.Client.Do(req)
 	if err != nil {
 		return nil, err
