@@ -1,4 +1,4 @@
-package main
+package alm
 
 import (
 	"io/ioutil"
@@ -35,21 +35,19 @@ func TestDelivery(t *testing.T) {
 }
 
 func TestMissingTmt(t *testing.T) {
-	want := MissingTmt
+	want := ErrMissingTmt
 	got := (Delivery{}).validate()
 	if want != got {
 		t.Fatalf("want %+v but got %+v", want, got)
 	}
-
 }
 
 func TestMissingDomain(t *testing.T) {
-	want := MissingDomain
+	want := ErrMissingDomain
 	got := (Delivery{Tmt{Project: "project1"}}).validate()
 	if want != got {
 		t.Fatalf("want %+v but got %+v", want, got)
 	}
-
 }
 
 func TestNoDefects(t *testing.T) {

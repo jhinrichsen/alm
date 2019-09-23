@@ -1,4 +1,4 @@
-package main
+package alm
 
 import (
 	"io/ioutil"
@@ -15,9 +15,9 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// merge multiple partly filled structs into one, precedence from the left to the right
-func merge(as ...AlmInstance) (*AlmInstance, error) {
-	var merged AlmInstance
+// Merge multiple partly filled structs into one, precedence from the left to the right
+func Merge(as ...Instance) (*Instance, error) {
+	var merged Instance
 	for _, a := range as {
 		if err := mergo.Merge(&merged, a); err != nil {
 			return nil, err
@@ -36,8 +36,8 @@ func DefaultConfig() (string, error) {
 }
 
 // ReadCfg reads the config file
-func ReadCfg(filename string) (AlmInstance, error) {
-	var a AlmInstance
+func ReadCfg(filename string) (Instance, error) {
+	var a Instance
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return a, err
@@ -48,7 +48,9 @@ func ReadCfg(filename string) (AlmInstance, error) {
 	return a, nil
 }
 
-func ReadEnv(prefix string, a *AlmInstance) {
+// ReadEnv updates members in an ALM instance with values from corresponding
+// environment variables, useful for twelve-factor apps.
+func ReadEnv(prefix string, a *Instance) {
 	strct := reflect.ValueOf(a).Elem()
 	for i := 0; i < strct.NumField(); i++ {
 		name := strct.Type().Field(i).Name

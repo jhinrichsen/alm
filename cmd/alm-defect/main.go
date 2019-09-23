@@ -5,7 +5,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"gitlab.com/jhinrichsen/alm"
 )
+
+// Version is populated from git during link step
+var Version = "undefined"
+
+// Commit is populated from git during link step
+var Commit = "undefined"
 
 // Return codes
 const (
@@ -37,7 +45,7 @@ func main() {
 	}
 
 	// commandline parameter
-	cp := AlmInstance{}
+	cp := alm.Instance{}
 	flag.StringVar(&cp.Server, "server", "",
 		"IP address of ALM server instance")
 	flag.StringVar(&cp.Protocol, "protocol", "https", "ALM server protocol")
@@ -52,7 +60,7 @@ func main() {
 	flag.StringVar(&cp.IntoStatus, "intostatus", "",
 		"tickets will be changed to this status")
 
-	dc, err := DefaultConfig()
+	dc, err := alm.DefaultConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,22 +91,22 @@ func main() {
 	}
 
 	// configuration file
-	cf, err := ReadCfg(*config)
+	cf, err := alm.ReadCfg(*config)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("configuration file: %+v\n", cf)
 
 	// environment variables
-	var ev AlmInstance
-	ReadEnv(*prefix, &ev)
+	var ev alm.Instance
+	alm.ReadEnv(*prefix, &ev)
 	log.Printf("environment variables: %+v\n", ev)
 
-	a, err := merge(cp, ev, cf)
+	a, err := alm.Merge(cp, ev, cf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.Client = *client(*insecure)
+	a.Client = *alm.Client(*insecure)
 	log.Printf("using ALM instance %+v\n", a)
 
 	if err := a.SignIn(); err != nil {
@@ -122,7 +130,7 @@ func main() {
 		}
 
 	case "delivery":
-		t, err := parse(os.Stdin, *a)
+		t, err := alm.Parse(os.Stdin, *a)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error parsing stdin: %s\n", err)
 			os.Exit(ErrorParsing)

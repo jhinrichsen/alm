@@ -1,10 +1,9 @@
-package main
+package alm
 
 import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -16,11 +15,14 @@ import (
 )
 
 const (
-	SignInUrl  = "/api/authentication/sign-in"
-	SignOutUrl = "/api/authentication/sign-out"
+	// SignInURL according to ALM REST documentation
+	SignInURL = "/api/authentication/sign-in"
+	// SignOutURL according to ALM REST documentation
+	SignOutURL = "/api/authentication/sign-out"
 )
 
-type AlmInstance struct {
+// Instance represents one remote service instance.
+type Instance struct {
 	Protocol string
 	Server   string
 	Port     int
@@ -37,41 +39,47 @@ type AlmInstance struct {
 	Client http.Client
 }
 
+// Defect represents a subset of an ALM defect
 type Defect struct {
-	Id      int    `json:"id"`
+	ID      int    `json:"id"`
 	Subject int    `json:"subject"`
 	Status  string `json:"status"`
 	Type    string `json:"type"`
 }
 
+// DefectsResponse represents a REST api call request.
 type DefectsResponse struct {
 	Defects []Defect `json:"results"`
 }
 
+// DomainsResponse contains a list of all available domains in ALM.
 type DomainsResponse struct {
 	Domains []Domain `json:"results"`
 }
 
+// Domain represents ALM domain model
 type Domain struct {
 	Name string `json:"name"`
 }
 
+// Release represents ALM domain model
 type Release struct {
-	Id      int    `json:"id"`
+	ID      int    `json:"id"`
 	Subject int    `json:"subject"`
 	Status  string `json:"status"`
 	Type    string `json:"type"`
 }
 
-func (a *AlmInstance) Url(uri string) string {
+// URL returns a relative, constant REST API URL into a specific instance one
+func (a *Instance) URL(uri string) string {
 	return fmt.Sprintf("%s://%s:%d%s%s", a.Protocol, a.Server, a.Port, a.Context, uri)
 }
 
-// Login authenticates against ALM
+// SignIn authenticates against ALM.
 // https://admhelp.microfocus.com/alm/en/12.55/api_refs/REST/Content/REST_API/sign_in.htm
-func (a *AlmInstance) SignIn() error {
+func (a *Instance) SignIn() error {
 	log.Printf("signing in %s\n", a.Username)
-	req, err := http.NewRequest("GET", a.Url(SignInUrl), nil)
+	req, err := http.NewRequest("GET", a.URL(SignInURL), nil)
 	if err != nil {
 		return err
 	}
@@ -84,8 +92,7 @@ func (a *AlmInstance) SignIn() error {
 	if res.StatusCode == http.StatusOK {
 		log.Println(res.Status)
 	} else {
-		return errors.New(
-			fmt.Sprintf("error signing in: %s", res.Status))
+		return fmt.Errorf("error signing in: %s", res.Status)
 	}
 
 	/*
@@ -100,9 +107,10 @@ func (a *AlmInstance) SignIn() error {
 	return nil
 }
 
-func (a *AlmInstance) SignOut() error {
+// SignOut logs off from ALM
+func (a *Instance) SignOut() error {
 	log.Printf("signing out %s\n", a.Username)
-	u := a.Url(SignOutUrl)
+	u := a.URL(SignOutURL)
 	log.Printf("GET %s\n", u)
 	res, err := a.Client.Get(u)
 	if err != nil {
@@ -118,8 +126,9 @@ func (a *AlmInstance) SignOut() error {
 	return nil
 }
 
-func (a *AlmInstance) GetDefect(defect int) (*Defect, error) {
-	u := a.Url(DefectsUri(a.Domain, a.Project, defect))
+// GetDefect issues a remote REST call for given defect
+func (a *Instance) GetDefect(defect int) (*Defect, error) {
+	u := a.URL(DefectsURI(a.Domain, a.Project, defect))
 	log.Printf("GET %s\n", u)
 	res, err := a.Client.Get(u)
 	if err != nil {
@@ -136,6 +145,7 @@ func (a *AlmInstance) GetDefect(defect int) (*Defect, error) {
 	return ParseDefect(buf)
 }
 
+// ParseDefect tries to convert bytes in JSON format into a Defect.
 func ParseDefect(buf []byte) (*Defect, error) {
 	var d Defect
 	if err := json.Unmarshal(buf, &d); err != nil {
@@ -144,8 +154,9 @@ func ParseDefect(buf []byte) (*Defect, error) {
 	return &d, nil
 }
 
-func (a *AlmInstance) PutDefect(d Defect) (*Defect, error) {
-	u := a.Url(DefectsUri(a.Domain, a.Project, d.Id))
+// PutDefect issues a REST call to store a Defect.
+func (a *Instance) PutDefect(d Defect) (*Defect, error) {
+	u := a.URL(DefectsURI(a.Domain, a.Project, d.ID))
 	enc, err := json.Marshal(d)
 	if err != nil {
 		return nil, err
@@ -172,13 +183,14 @@ func (a *AlmInstance) PutDefect(d Defect) (*Defect, error) {
 	return ParseDefect(dec)
 }
 
-// DefectsUri returns the uri for given defect
-func DefectsUri(domain, project string, defect int) string {
+// DefectsURI returns the relative, constant REST API path for given defect.
+func DefectsURI(domain, project string, defect int) string {
 	return fmt.Sprintf("/api/domains/%s/projects/%s/defects/%d", domain, project, defect)
 }
 
-func (a *AlmInstance) GetRelease(ID string) (*Release, error) {
-	u := a.Url(ReleasesUri(a.Domain, a.Project, ID))
+// GetRelease issues a REST call to retrieve a Release.
+func (a *Instance) GetRelease(ID string) (*Release, error) {
+	u := a.URL(ReleasesURI(a.Domain, a.Project, ID))
 	log.Printf("GET %s\n", u)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -202,7 +214,8 @@ func (a *AlmInstance) GetRelease(ID string) (*Release, error) {
 	return ParseRelease(buf)
 }
 
-func ReleasesUri(domain, project string, release string) string {
+// ReleasesURI returns relative, constant REST API for given parameter set.
+func ReleasesURI(domain, project string, release string) string {
 	// return fmt.Sprintf("/api/domains/%s/projects/%s/releases/%s",
 	// domain, project, release)
 
@@ -211,6 +224,7 @@ func ReleasesUri(domain, project string, release string) string {
 		domain, project)
 }
 
+// ParseRelease tries to convert bytes in JSON format into a Release.
 func ParseRelease(buf []byte) (*Release, error) {
 	var r Release
 	if err := json.Unmarshal(buf, &r); err != nil {
@@ -219,8 +233,9 @@ func ParseRelease(buf []byte) (*Release, error) {
 	return &r, nil
 }
 
-func (a *AlmInstance) Domains() ([]Domain, error) {
-	u := a.Url(domainsUri())
+// Domains issues a REST call to retrieve a list of all available ALM domains.
+func (a *Instance) Domains() ([]Domain, error) {
+	u := a.URL(domainsURI())
 	log.Printf("GET %s\n", u)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -244,7 +259,7 @@ func (a *AlmInstance) Domains() ([]Domain, error) {
 	return parseDomains(buf)
 }
 
-func domainsUri() string {
+func domainsURI() string {
 	// domains and projects: "/api/domains?include-projects-info=y"
 	return "/api/domains"
 }
@@ -257,8 +272,10 @@ func parseDomains(buf []byte) ([]Domain, error) {
 	return dr.Domains, nil
 }
 
-func (a *AlmInstance) Defects(domain, project string) ([]Defect, error) {
-	u := a.Url(defectsUri(domain, project))
+// Defects issues a REST call to retrieve a list of defects for given parameter
+// set.
+func (a *Instance) Defects(domain, project string) ([]Defect, error) {
+	u := a.URL(defectsURI(domain, project))
 	log.Printf("GET %s\n", u)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -282,7 +299,7 @@ func (a *AlmInstance) Defects(domain, project string) ([]Defect, error) {
 	return parseDefects(buf)
 }
 
-func defectsUri(domain, project string) string {
+func defectsURI(domain, project string) string {
 	// api/domains/{domain}/projects/{project}/defects
 	return fmt.Sprintf("/api/domains/%s/projects/%s/defects",
 		domain, project)
@@ -296,7 +313,8 @@ func parseDefects(buf []byte) ([]Defect, error) {
 	return dr.Defects, nil
 }
 
-func (a *AlmInstance) UpdateDefects(defects []string) error {
+// UpdateDefects issues a REST call to update status of defects.
+func (a *Instance) UpdateDefects(defects []string) error {
 	for _, s := range defects {
 		fmt.Printf("parsing defect %q\n", s)
 		id, err := strconv.Atoi(s)
@@ -317,7 +335,7 @@ func (a *AlmInstance) UpdateDefects(defects []string) error {
 		}
 		log.Printf("updating %d to %q\n", id, a.IntoStatus)
 		d2 := Defect{
-			Id:     id,
+			ID:     id,
 			Status: a.IntoStatus,
 		}
 		d3, err := a.PutDefect(d2)
@@ -329,7 +347,8 @@ func (a *AlmInstance) UpdateDefects(defects []string) error {
 	return nil
 }
 
-func (a *AlmInstance) NewReleases(releaseIDs []string) error {
+// NewReleases logs existing releases to stdout.
+func (a *Instance) NewReleases(releaseIDs []string) error {
 	for _, releaseID := range releaseIDs {
 		release, err := a.GetRelease(releaseID)
 		if err != nil {
@@ -345,7 +364,8 @@ func (a *AlmInstance) NewReleases(releaseIDs []string) error {
 	return nil
 }
 
-func client(insecure bool) *http.Client {
+// Client returns a configured http client usable for ALM access.
+func Client(insecure bool) *http.Client {
 	var client http.Client
 	if insecure {
 		client.Transport = &http.Transport{

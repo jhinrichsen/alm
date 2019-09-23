@@ -1,4 +1,4 @@
-package main
+package alm
 
 import (
 	"errors"
@@ -11,16 +11,18 @@ import (
 
 // YAML structure:
 // tmt:
-//     domain: {{ your TMT domain }}
-//     project: {{ your TMT project }}
+//     domain: {{ your ALM domain }}
+//     project: {{ your ALM project }}
 //     defects:
-// 	            - {{ TMT defect ID #1 }}
-// 	            - {{ TMT defect ID #2 }}
+// 	            - {{ ALM defect ID #1 }}
+// 	            - {{ ALM defect ID #2 }}
 
+// Delivery represents an ALM domain model
 type Delivery struct {
 	Tmt Tmt
 }
 
+// Tmt is a root ALM domain model.
 type Tmt struct {
 	Domain  string
 	Project string
@@ -29,32 +31,37 @@ type Tmt struct {
 
 // A couple of parsing errors
 var (
-	MissingTmt     = errors.New("Missing required element tmt:")
-	EmptyTmt       = errors.New("Empty tmt:, missing required elements")
-	MissingDomain  = errors.New("Missing required element tmt: domain:")
-	MissingProject = errors.New("Missing required element tmt: project:")
+	// ErrMissingTmt indicates a missing root entry /tmt
+	ErrMissingTmt = errors.New("missing required element tmt")
+	// ErrEmptyTmt indicates root entry /tmt exists, but has no embedded
+	// information.
+	ErrEmptyTmt = errors.New("empty tmt:, missing required elements")
+	// ErrMissingDomain indicates absence of tmt/domain
+	ErrMissingDomain = errors.New("missing required element /tmt/domain")
+	// ErrMissingProject indicates absence of tmt/project
+	ErrMissingProject = errors.New("missing required element /tmt/project")
 )
 
 func (a Delivery) validate() error {
 	if reflect.DeepEqual(a, Delivery{}) {
-		return MissingTmt
+		return ErrMissingTmt
 	}
 	if reflect.DeepEqual(a.Tmt, Tmt{}) {
-		return EmptyTmt
+		return ErrEmptyTmt
 	}
 	if a.Tmt.Domain == "" {
-		return MissingDomain
+		return ErrMissingDomain
 	}
 	if a.Tmt.Project == "" {
-		return MissingProject
+		return ErrMissingProject
 	}
 	// an empty list of defects is fine (just a feature releaes w/o
 	// bugfixes)
 	return nil
 }
 
-// parse expects a standard YAML structure that contains fixed issues.
-func parse(in io.Reader, a AlmInstance) (Tmt, error) {
+// Parse expects a standard YAML structure that contains fixed issues.
+func Parse(in io.Reader, a Instance) (Tmt, error) {
 	var d Delivery
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
